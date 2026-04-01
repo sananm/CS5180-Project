@@ -1,0 +1,7 @@
+# Core dependencies for othello_rl
+# For CUDA support, install torch with: pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu121
+torch==2.6.0
+numpy>=1.26,<2.0
+pytest>=8.0
+tqdm>=4.66
+matplotlib>=3.8
