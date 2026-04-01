@@ -28,6 +28,11 @@ __all__ = [
     "LossLogger",
     "LossRow",
     "LOSS_CSV_COLUMNS",
+    # Compute timing exports
+    "timed_call",
+    "timed_az_iteration",
+    "timed_ppo_iteration",
+    "TimedResult",
 ]
 
 _EXPORTS = {
@@ -55,6 +60,11 @@ _EXPORTS = {
     "LossLogger": "othello_rl.evaluation.loss_logger",
     "LossRow": "othello_rl.evaluation.loss_logger",
     "LOSS_CSV_COLUMNS": "othello_rl.evaluation.loss_logger",
+    # Compute timing exports
+    "timed_call": "othello_rl.evaluation.compute_timing",
+    "timed_az_iteration": "othello_rl.evaluation.compute_timing",
+    "timed_ppo_iteration": "othello_rl.evaluation.compute_timing",
+    "TimedResult": "othello_rl.evaluation.compute_timing",
 }
 
 
