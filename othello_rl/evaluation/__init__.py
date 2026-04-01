@@ -19,6 +19,15 @@ __all__ = [
     "plot_training_curves",
     "update_elo",
     "wilson_interval",
+    # New Phase 6 exports
+    "binomial_test",
+    "SignificanceResult",
+    "disaggregate_by_color",
+    "ColorAnalysis",
+    "ColorStats",
+    "LossLogger",
+    "LossRow",
+    "LOSS_CSV_COLUMNS",
 ]
 
 _EXPORTS = {
@@ -37,6 +46,15 @@ _EXPORTS = {
     "TrainingCurveLogger": "othello_rl.evaluation.logging",
     "TrainingCurveRow": "othello_rl.evaluation.logging",
     "plot_training_curves": "othello_rl.evaluation.plotting",
+    # New Phase 6 modules
+    "binomial_test": "othello_rl.evaluation.significance",
+    "SignificanceResult": "othello_rl.evaluation.significance",
+    "disaggregate_by_color": "othello_rl.evaluation.color_analysis",
+    "ColorAnalysis": "othello_rl.evaluation.color_analysis",
+    "ColorStats": "othello_rl.evaluation.color_analysis",
+    "LossLogger": "othello_rl.evaluation.loss_logger",
+    "LossRow": "othello_rl.evaluation.loss_logger",
+    "LOSS_CSV_COLUMNS": "othello_rl.evaluation.loss_logger",
 }
 
 
