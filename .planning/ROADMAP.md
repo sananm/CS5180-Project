@@ -114,8 +114,8 @@ Plans:
 
 Plans:
 - [x] 06-01-PLAN.md — Infrastructure gaps: PPO save/load, deterministic mode, scipy, significance testing, color analysis, loss logger
-- [ ] 06-02-PLAN.md — Experiment scripts: head-to-head, MCTS ablation, PPO pool ablation, ablation/color plotting
-- [ ] 06-03-PLAN.md — Compute efficiency timing, loss/entropy curve logging, multi-panel loss/entropy plots
+- [x] 06-02-PLAN.md — Experiment scripts: head-to-head, MCTS ablation, PPO pool ablation, ablation/color plotting
+- [x] 06-03-PLAN.md — Compute efficiency timing, loss/entropy curve logging, multi-panel loss/entropy plots
 
 ### Phase 7: Paper Writing
 **Goal**: A complete AAAI-format research paper with all sections, figures, tables, and reproducibility details, ready for submission with code
@@ -145,5 +145,5 @@ Note: Phases 2 and 3 both depend only on Phase 1 and could overlap. Phases 4 and
 | 3. Shared CNN | 1/1 | Complete | 2026-03-31 |
 | 4. AlphaZero Agent + Training | 2/2 | Complete | 2026-04-01 |
 | 5. PPO Agent + Training | 2/2 | Complete | 2026-04-01 |
-| 6. Full Evaluation + Experiments | 1/3 | In Progress|  |
+| 6. Full Evaluation + Experiments | 3/3 | Complete | 2026-04-01 |
 | 7. Paper Writing | 0/2 | Not started | - |

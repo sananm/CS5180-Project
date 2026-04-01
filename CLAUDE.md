@@ -26,7 +26,10 @@ CS 5180 Reinforcement Learning course project (Northeastern, Spring 2026). Solo 
 - Phase 3 COMPLETE: SharedCNN, residual blocks, config constants, AlphaZero/PPO builders, and an 8-test validation suite
 - Phase 3 verification COMPLETE on CPU: SharedCNN tests pass, full repo test suite is 55/55 passing, CPU forward smoke benchmark is ~2.154 ms
 - Remaining hardware gate: verify the `<10ms on T4 GPU` latency target in the actual cloud environment before making final performance claims
-- Next step: plan Phase 4 with `$gsd-plan-phase 4`
+- Phase 4 COMPLETE: MCTS with PUCT, replay buffer, AlphaZero trainer, AlphaZeroAgent, self-play pipeline, 87-test suite
+- Phase 5 COMPLETE: PPO core (plan 01) + PPOTrainer with opponent pool, PPOAgent, package exports (plan 02) — IS ratio=1.0 confirmed, smoke test passes, 106-test suite
+- Phase 6 COMPLETE: All evaluation infrastructure + experiment scripts — significance testing, color analysis, loss logging, compute timing, ablation scripts, plotting (141-test suite)
+- Next step: Phase 7 — Paper Writing (/gsd:plan-phase 7)
 
 ## Tech Stack
 
