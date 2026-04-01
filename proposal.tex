@@ -1,0 +1,91 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.8in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage[T1]{fontenc}
+\usepackage[numbers,compress]{natbib}
+\bibliographystyle{unsrtnat}
+\setlength{\parskip}{2pt}
+
+\title{\vspace{-1.5em}Project Proposal: Self-Play Reinforcement Learning on Othello -- AlphaZero vs.\ PPO\vspace{-0.5em}}
+\author{Mohammed Sanan Moinuddin\\
+\small CS 5180: Reinforcement Learning -- Spring 2026}
+\date{\vspace{-1em}}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\section{Problem Description}
+
+I study self-play reinforcement learning in \textbf{Othello} (Reversi), a two-player zero-sum board game on an $8\times 8$ grid. Players alternate placing discs; opponent discs flanked between the new disc and an existing friendly disc are flipped. The player with the most discs when no legal moves remain wins.
+
+Othello is a compelling RL domain because it is (1)~a \emph{zero-sum, perfect-information} game with a clean reward signal, (2)~\emph{not a solved game} (unlike Connect4), so there is no artificial ceiling on agent performance, (3)~fully deterministic, making it straightforward to attribute outcomes to the agent's policy, and (4)~requires \emph{long-horizon planning} (up to 60 moves), providing a serious test for RL.
+
+\paragraph{Formal MDP formulation:} Othello is technically a two-player Markov game, but by encoding the board from the current player's perspective, I reduce it to a single-agent MDP where the opponent is part of the environment.
+\begin{itemize}[nosep,leftmargin=*]
+    \item \textbf{State} $s$: Tensor of shape $(3, 8, 8)$--channel~0 for current-player discs, channel~1 for opponent discs, channel~2 as a turn indicator. This canonical representation lets a single network play as either color.
+    \item \textbf{Action} $a$: Integer in $\{0, \dots, 63\}$ for disc placement. Illegal moves are masked before the policy softmax.
+    \item \textbf{Reward} $r$: Terminal only -- $+1$ (win), $-1$ (loss), $0$ (draw).
+    \item \textbf{Transition}: Deterministic, governed by Othello rules.
+    \item \textbf{Horizon}: At most 60 moves (64 squares minus 4 pre-placed).
+\end{itemize}
+
+\paragraph{Environment:}
+I use the Othello implementation from the open-source \texttt{alpha-zero-general} framework, which provides board logic, legal-action queries, and terminal detection in Python. Both algorithms share this single game implementation to ensure identical game semantics. Prior RL work on Othello includes TD-learning with self-play~\cite{vanderree2013reinforcement}, CNN-based move prediction that defeated the Edax engine~\cite{liskowski2017learning}, and the recent MiniZero framework comparing AlphaZero and MuZero on 8$\times$8 Othello~\cite{wu2023minizero}. However, MiniZero compares two MCTS-based algorithms; my contribution is a comparison between a \emph{search-based} method (AlphaZero) and a \emph{search-free} policy gradient method (PPO), which has not been studied on Othello.
+
+\section{Algorithms}
+
+I will be implementing both algorithms: for AlphaZero, I adapt the \texttt{alpha-zero-general} framework\footnote{\url{https://github.com/suragnair/alpha-zero-general}}, tuning the neural network and self-play training loop for 8$\times$8 Othello; for PPO, I implement the full algorithm from scratch. Shared infrastructure--baselines, evaluation, and Elo computation--is written once and used by both.
+
+\paragraph{Algorithm 1: AlphaZero:}
+AlphaZero~\cite{silver2017mastering} combines a CNN with Monte Carlo Tree Search (MCTS). The CNN takes the $(3,8,8)$ board and outputs a \emph{policy} $\mathbf{p}(s)$ (distribution over actions) and a \emph{value} $v(s) \in [-1,+1]$. During play, MCTS runs $N$ simulations using the PUCT selection rule:
+\vspace{-0.3em}
+\[
+    \textstyle \text{PUCT}(s,a) = Q(s,a) + c_{\text{puct}} \cdot P(s,a) \cdot \frac{\sqrt{N(s)}}{1 + N(s,a)}
+\]
+\vspace{-0.5em}
+
+\noindent where $Q(s,a)$ is the mean value of prior visits and $P(s,a)$ is the network's prior. Training proceeds via self-play: games produce tuples $(s, \boldsymbol{\pi}_{\text{mcts}}, z)$ stored in a replay buffer, and the network minimizes $\mathcal{L} = (v(s) - z)^2 - \boldsymbol{\pi}_{\text{mcts}}^\top \log \mathbf{p}(s)$.
+
+\paragraph{Algorithm 2: PPO with Opponent-Pool Self-Play:}
+Proximal Policy Optimization~\cite{schulman2017proximal} directly optimizes a stochastic policy via the clipped surrogate objective:
+\vspace{-0.3em}
+\[
+    \textstyle \mathcal{L}_{\text{CLIP}} = \mathbb{E}\!\left[\min\!\left(r(\theta)\hat{A},\; \text{clip}(r(\theta), 1{-}\epsilon, 1{+}\epsilon)\,\hat{A}\right)\right]
+\]
+\vspace{-0.5em}
+
+\noindent where $r(\theta) = \pi_\theta(a|s)/\pi_{\theta_{\text{old}}}(a|s)$ and $\hat{A}$ is the generalized advantage estimate. The clipping prevents destabilizing large policy updates. I use an actor-critic CNN with the same architecture as AlphaZero for fair comparison. For self-play, I maintain an \emph{opponent pool}: every $K$ steps the current policy is checkpointed, and opponents are sampled uniformly from the pool to prevent catastrophic forgetting, following OpenAI Five~\cite{berner2019dota}.
+
+\paragraph{Key difference:}
+AlphaZero combines \emph{learning with planning} (MCTS lookahead), while PPO relies on \emph{pure learned intuition} with no search at decision time.
+
+\paragraph{Baselines.}
+\begin{itemize}[nosep,leftmargin=*]
+    \item \textbf{Random agent}: selects uniformly among legal moves (lower bound).
+    \item \textbf{Minimax with alpha-beta pruning} at depth~4 and depth~6, using a positional heuristic (corners and edges weighted heavily).
+    \item \textbf{Head-to-head}: AlphaZero vs.\ PPO directly.
+\end{itemize}
+
+\section{Expected Results}
+
+I will report: (1)~\textbf{win rates} (with 95\% confidence intervals) from round-robin tournaments of 200+ games per matchup, (2)~\textbf{Elo ratings} ranking all agents on a single scale, and (3)~\textbf{training curves} (win rate vs.\ training iterations against fixed baselines). As a stretch goal, I will include \textbf{ablation studies}--varying MCTS simulation count (50/200/800) for AlphaZero and opponent pool size (1/5/20) for PPO. Training will be conducted on Google Cloud (GPU).
+
+\paragraph{Hypothesis:}
+AlphaZero $>$ PPO $\gg$ Minimax (depth~6) $>$ Minimax (depth~4) $>$ Random, since MCTS lookahead should provide an edge over a pure policy network. However, the magnitude of this gap--and whether PPO's faster training compensates at lower compute budgets--is the central open question.
+
+\paragraph{Risks and mitigations:}
+\begin{itemize}[nosep,leftmargin=*]
+    \item \emph{MCTS compute cost}: Google Cloud GPUs; reduced simulation counts during training, increased for evaluation.
+    \item \emph{PPO self-play collapse}: Opponent pool diversity; continuous monitoring against fixed baselines.
+    \item \emph{Slow convergence}: Early start with short sanity-check runs before full training.
+    \item \emph{Inconclusive results}: 200+ games per matchup for statistical significance.
+\end{itemize}
+
+{\footnotesize
+\bibliography{references}
+}
+
+\end{document}
