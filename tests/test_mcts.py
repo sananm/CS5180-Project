@@ -145,41 +145,35 @@ class TestEdgeCases:
 
     def test_mcts_pass_only_position(self, game, network):
         """MCTS handles positions where only action 64 (pass) is legal.
-        
+
         Addresses review concern: pass-only edge case.
+
+        Constructs a board where player 1 has no legal placement moves
+        (only pass is valid) but the game is NOT over because player -1
+        still has legal moves.
         """
-        mcts = MCTS(game, network, num_sims=25, cpuct=1.0, device='cpu')
-        
-        # Create a position where player 1 must pass (all squares occupied except
-        # positions where player cannot move). We'll create a nearly full board.
-        # In Othello, near endgame it's common for one player to have no moves.
-        
-        # Alternative: Use a mock or construct a known pass-only position
-        # For simplicity, we'll mock getValidMoves for this test
-        board = game.getInitBoard()
+        # Board: all -1 except one player-1 piece and one empty square.
+        # Player 1 at (3,3) is isolated -- no empty adjacent square where
+        # placing would flip opponent pieces.
+        # Player -1 can place at (3,4) to flip (3,3).
+        # So: player 1 must pass, player -1 has a move, game continues.
+        board = np.ones((8, 8), dtype=np.float64) * -1
+        board[3, 3] = 1     # isolated player 1 piece
+        board[3, 4] = 0     # single empty square
+
+        # Sanity checks on the constructed position
+        valid = game.getValidMoves(board, 1)
+        assert valid[64] == 1 and np.sum(valid[:64]) == 0, \
+            "Board should be pass-only for player 1"
+        assert game.getGameEnded(board, 1) == 0, \
+            "Game should NOT be over (player -1 still has moves)"
+
         canonical = game.getCanonicalForm(board, 1)
-        
-        # Override valid moves to only allow pass
-        original_get_valid = game.getValidMoves
-        
-        def mock_valid_moves(b, p):
-            # Return only pass as valid
-            v = np.zeros(ACTION_SIZE)
-            v[64] = 1  # Only pass is valid
-            return v
-        
-        game.getValidMoves = mock_valid_moves
-        
-        try:
-            probs = mcts.get_action_prob(canonical, temp=0)
-            
-            # Pass action (64) should have probability 1.0
-            assert probs[64] == 1.0, f"Pass action should have prob 1.0, got {probs[64]}"
-            # All other actions should have probability 0
-            assert np.sum(probs[:64]) == 0, "Non-pass actions should have prob 0"
-        finally:
-            # Restore original method
-            game.getValidMoves = original_get_valid
+        mcts = MCTS(game, network, num_sims=10, cpuct=1.0, device='cpu')
+        probs = mcts.get_action_prob(canonical, temp=0)
+
+        assert probs[64] == 1.0, f"Pass action should have prob 1.0, got {probs[64]}"
+        assert np.sum(probs[:64]) == 0, "Non-pass actions should have prob 0"
 
 
 class TestStrengthInvariant:
@@ -196,7 +190,7 @@ class TestStrengthInvariant:
         
         mcts_10 = MCTS(game, network, num_sims=10, cpuct=1.0, device='cpu')
         mcts_50 = MCTS(game, network, num_sims=50, cpuct=1.0, device='cpu')
-        random_agent = RandomAgent(seed=123)
+        random_agent = RandomAgent(rng=np.random.default_rng(123))
         
         def mcts_vs_random(mcts_obj, num_games=20):
             """Play MCTS against random and count wins."""
