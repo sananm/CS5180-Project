@@ -85,6 +85,8 @@ def main():
     parser.add_argument('--epochs-per-iter', type=int, default=AZ_EPOCHS_PER_ITER,
                         help='Training epochs per iteration')
     parser.add_argument('--batch-size', type=int, default=AZ_BATCH_SIZE)
+    parser.add_argument('--max-buffer-size', type=int, default=AZ_REPLAY_BUFFER_SIZE,
+                        help='Replay buffer capacity (smaller = faster, stabilizes sooner)')
     parser.add_argument('--lr', type=float, default=AZ_LEARNING_RATE)
     parser.add_argument('--eval-every', type=int, default=10,
                         help='Evaluate every N iterations')
@@ -127,7 +129,7 @@ def main():
         cpuct=AZ_CPUCT,
         lr=args.lr,
         batch_size=args.batch_size,
-        max_buffer_size=AZ_REPLAY_BUFFER_SIZE,
+        max_buffer_size=args.max_buffer_size,
         games_per_iter=args.games_per_iter,
         epochs_per_iter=args.epochs_per_iter,
         temp_threshold=AZ_TEMP_THRESHOLD,
