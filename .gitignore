@@ -16,3 +16,14 @@ results/
 *.log
 *.out
 *.synctex*
+*.md
+*.tex
+*.bst
+*.bib
+*.sty
+*.pdf
+*.pptx
+Research Papers/
+Shyam.pdf
+=1.12
+make_ppt.py

@@ -5,7 +5,7 @@ Run from the project root: python paper/gen_figures.py
 
 Figures produced:
   paper/figures/training_az.pdf    — AlphaZero win rate vs iteration
-  paper/figures/training_ppo.pdf   — PPO win rate vs iteration (pool-5)
+  paper/figures/training_ppo.pdf   — PPO win rate vs iteration (pool-20, main run)
   paper/figures/ablation_mcts.pdf  — AlphaZero win rate vs MCTS sim count
   paper/figures/ablation_pool.pdf  — PPO win rate vs pool size
 
@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import csv
 import sys
-from collections import defaultdict
 from pathlib import Path
 
 import matplotlib
@@ -66,15 +65,36 @@ FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 #         games, wins, draws, losses, win_rate, ci_low, ci_high, ...)
 # ---------------------------------------------------------------------------
 def _read_training_csv(csv_path: Path) -> dict[str, list[dict]]:
-    """Return rows grouped by opponent name, sorted by iteration."""
-    groups: dict[str, list[dict]] = defaultdict(list)
+    """Return rows grouped by opponent name, sorted by iteration.
+
+    Reads all rows and deduplicates by (iteration, opponent), keeping the
+    last occurrence (most recent evaluation at each checkpoint).
+    """
+    all_rows: list[dict] = []
     with csv_path.open(newline="") as fh:
         reader = csv.DictReader(fh)
         for row in reader:
-            groups[row["opponent"]].append(row)
-    for opponent in groups:
-        groups[opponent].sort(key=lambda r: int(r["iteration"]))
-    return groups
+            all_rows.append(row)
+
+    if not all_rows:
+        return {}
+
+    # Deduplicate by (iteration, opponent) keeping last occurrence
+    seen: dict[tuple, dict] = {}
+    for row in all_rows:
+        key = (int(row["iteration"]), row["opponent"])
+        seen[key] = row
+
+    # Group by opponent, sorted by iteration
+    grouped: dict[str, list[dict]] = {}
+    for (iteration, opponent), row in sorted(seen.items()):
+        grouped.setdefault(opponent, []).append({
+            "iteration": iteration,
+            "win_rate": float(row["win_rate"]),
+            "ci_low": float(row.get("ci_low", 0)),
+            "ci_high": float(row.get("ci_high", 1)),
+        })
+    return grouped
 
 
 # ---------------------------------------------------------------------------
@@ -99,7 +119,7 @@ def make_training_az() -> Path:
         label = label_map.get(opponent, opponent)
         color = colors.get(opponent, None)
         ax.plot(iters, wr, marker="o", markersize=2, label=label, color=color)
-        if all(r.get("ci_low") and r.get("ci_high") for r in rows):
+        if all(r.get("ci_low") is not None and r.get("ci_high") is not None for r in rows):
             ci_low = [float(r["ci_low"]) for r in rows]
             ci_high = [float(r["ci_high"]) for r in rows]
             ax.fill_between(iters, ci_low, ci_high, alpha=0.15, color=color)
@@ -121,13 +141,15 @@ def make_training_az() -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Figure 2: PPO training curves (use pool-5 as representative run)
+# Figure 2: PPO training curves (use pool-20 as the main run)
 # ---------------------------------------------------------------------------
 def make_training_ppo() -> Path:
-    # Use pool-5 as the representative PPO training curve
-    csv_path = RESULTS_DIR / "ppo_training" / "ppo_pool5" / "training_curves.csv"
+    # Use pool-20 as the representative PPO training curve (main run)
+    csv_path = RESULTS_DIR / "ppo_training" / "ppo_pool20" / "training_curves.csv"
     if not csv_path.exists():
-        # Fallback to pool-1
+        # Fallback to pool-5, then pool-1
+        csv_path = RESULTS_DIR / "ppo_training" / "ppo_pool5" / "training_curves.csv"
+    if not csv_path.exists():
         csv_path = RESULTS_DIR / "ppo_training" / "ppo_pool1" / "training_curves.csv"
     if not csv_path.exists():
         print(f"ERROR: ppo training_curves.csv not found. Skipping training_ppo.pdf.")
@@ -146,7 +168,7 @@ def make_training_ppo() -> Path:
         label = label_map.get(opponent, opponent)
         color = colors.get(opponent, None)
         ax.plot(iters, wr, marker="o", markersize=2, label=label, color=color)
-        if all(r.get("ci_low") and r.get("ci_high") for r in rows):
+        if all(r.get("ci_low") is not None and r.get("ci_high") is not None for r in rows):
             ci_low = [float(r["ci_low"]) for r in rows]
             ci_high = [float(r["ci_high"]) for r in rows]
             ax.fill_between(iters, ci_low, ci_high, alpha=0.15, color=color)
@@ -154,7 +176,7 @@ def make_training_ppo() -> Path:
     ax.axhline(y=0.5, color="gray", linestyle="--", linewidth=0.8, alpha=0.6)
     ax.set_xlabel("PPO Update Step")
     ax.set_ylabel("Win Rate")
-    ax.set_title("PPO Training Progress (Pool-5)")
+    ax.set_title("PPO Training Progress (Pool-20, Main Run)")
     ax.set_ylim(0, 1.05)
     ax.legend(loc="lower right")
     ax.grid(alpha=0.3)
